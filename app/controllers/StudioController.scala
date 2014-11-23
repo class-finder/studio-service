@@ -1,9 +1,12 @@
 package controllers
 
+import controllers.response.ResponseEnvelope
+import controllers.response.ResponseEnvelope._
 import daos.StudioDao
 import models.ObjectID
 import models.ObjectID._
 import play.api._
+import play.api.libs.json.Json
 import play.api.mvc._
 
 import scala.concurrent.Future
@@ -16,9 +19,9 @@ object StudioController extends Controller with StudioDao {
     val ftoStudio = readStudio(studioId)
 
     ftoStudio.map {
-      case Failure(exception) => BadRequest("The requested failed: "+exception.getMessage)
-      case Success(None) => NotFound("The studio could not be found ("+studioId.withDashes+")")
-      case Success(Some(studio)) => Ok(studio.toString)
+      case Failure(exception) => BadRequest(Json.toJson(ResponseEnvelope.Error("The requested failed: "+exception.getMessage)))
+      case Success(None) => NotFound(Json.toJson(ResponseEnvelope.Error("The studio could not be found ("+studioId.withDashes+")")))
+      case Success(Some(studio)) => Ok(Json.toJson(ResponseEnvelope.Data(studio)))
     }
 
 
