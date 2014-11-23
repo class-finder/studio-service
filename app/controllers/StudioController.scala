@@ -6,7 +6,7 @@ import daos.StudioDao
 import models.ObjectID
 import models.ObjectID._
 import play.api._
-import play.api.libs.json.Json
+import play.api.libs.json.{Writes, Json}
 import play.api.mvc._
 
 import scala.concurrent.Future

@@ -31,7 +31,7 @@ case class ObjectID(id: String) extends AnyVal {
     } else if (id.length == 36) {
       id
     } else {
-      throw new Exception("Id is not a valid UUID")
+      throw new Exception("ID is not a valid GUID")
     }
   }
 
@@ -41,7 +41,7 @@ case class ObjectID(id: String) extends AnyVal {
     } else if (id.length == 36) {
       id.split('-').mkString
     } else {
-      throw new Exception("Id is not a valid UUID")
+      throw new Exception("ID is not a valid GUID")
     }
   }
 
