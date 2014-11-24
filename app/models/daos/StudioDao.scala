@@ -1,16 +1,14 @@
 package models.daos
 
-import java.util.UUID
-
-import models.paging.{TotalResults, PageNumber, ResultsPerPage, PagedResult}
-import models.{BusinessName, ObjectID, Studio}
 import anorm._
-import play.api.db.DB
+import models.paging.{PageNumber, PagedResult, ResultsPerPage, TotalResults}
+import models.{BusinessName, ObjectID, Studio}
 import play.api.Play.current
+import play.api.db.DB
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.Try
 import scala.concurrent.Future
+import scala.util.Try
 
 trait StudioDao {
   def createStudio(studio: Studio): Future[Try[Studio]] = Future {

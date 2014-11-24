@@ -1,15 +1,12 @@
 package models
 
-import java.util.UUID
-
-import models.daos.StudioDao
 import models.contact._
-import models.paging.PagedResult
+import models.daos.StudioDao
 import play.api.libs.json._
 
-import scala.concurrent.Future
-import scala.util.{Success, Try}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.util.Try
 
 object Studio {
   private val studioDao = new StudioDao {}

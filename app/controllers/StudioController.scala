@@ -1,17 +1,14 @@
 package controllers
 
-import controllers.response.{EmptyResponse, DataResponse, ErrorResponse, ResponseEnvelope}
 import controllers.response.ResponseEnvelope._
-import models.daos.StudioDao
-import models.{BusinessName, Studio, ObjectID}
-import models.ObjectID._
-import play.api._
-import play.api.libs.json.{JsValue, Writes, Json}
+import controllers.response.{DataResponse, EmptyResponse, ErrorResponse}
+import models.{ObjectID, Studio}
+import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.{Try, Success, Failure}
+import scala.concurrent.Future
+import scala.util.{Failure, Success, Try}
 
 object StudioController extends Controller {
   def read(studioId: ObjectID) = Action.async {
