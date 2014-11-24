@@ -13,7 +13,38 @@ import scala.util.Try
 import scala.concurrent.Future
 
 trait StudioDao {
-  def createStudio(studio: Studio): Future[Try[Studio]] = ???
+  def createStudio(studio: Studio): Future[Try[Studio]] = Future {
+    Try {
+      // Generate a random ID
+      val studioId = ObjectID.randomID
+
+      DB.withConnection { implicit c =>
+        SQL(
+          """
+            |INSERT INTO studio (`studio_id`, `name`)
+            |VALUES (UNHEX({studioId}), {name})
+          """.stripMargin
+        ).on(
+          "studioId" -> studioId.stripDashes,
+          "name" -> studio.name.map(_.name).orNull
+        ).executeInsert()
+
+        val studioRow = SQL(
+          """
+            |SELECT HEX(`studio_id`) AS x_studio_id, `name`
+            |FROM studio
+            |WHERE `studio_id` = UNHEX({studioId})
+            |LIMIT 1
+          """.stripMargin
+        ).on("studioId" -> studioId.stripDashes).apply().head
+
+        Studio(
+          Some(ObjectID(studioRow[String]("x_studio_id"))),
+          Some(BusinessName(studioRow[String]("name")))
+        )
+      }
+    }
+  }
 
   def readStudio(studioId: ObjectID): Future[Try[Option[Studio]]] = Future {
     Try {
@@ -76,17 +107,19 @@ trait StudioDao {
 
   def updateStudio(studio: Studio): Future[Try[Studio]] = ???
 
-  def deleteStudio(studioId: ObjectID): Future[Try[Unit]] = Future {
+  def deleteStudio(studioId: ObjectID): Future[Try[Boolean]] = Future {
     Try {
       DB.withConnection { implicit c =>
-        SQL(
+        val rowsUpdated = SQL(
           """
             |DELETE
             |FROM studio
             |WHERE `studio_id` = UNHEX({studioId})
             |LIMIT 1
           """.stripMargin
-        ).on("studioId" -> studioId.stripDashes).execute()
+        ).on("studioId" -> studioId.stripDashes).executeUpdate()
+
+        rowsUpdated == 1
       }
     }
   }

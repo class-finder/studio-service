@@ -12,6 +12,11 @@ object ObjectID {
 
     override def unbind(key: String, value: ObjectID): String = value.id
   }
+
+  def randomID: ObjectID = {
+    val seed = UUID.randomUUID()
+    ObjectID(seed.toString)
+  }
 }
 
 case class ObjectID(id: String) extends AnyVal {
