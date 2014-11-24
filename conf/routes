@@ -5,6 +5,7 @@
 # Home page
 GET     /                           controllers.Application.index
 POST    /studios                    controllers.StudioController.add
+GET     /studios                    controllers.StudioController.index
 GET     /studios/:studioId          controllers.StudioController.read(studioId: models.ObjectID)
 
 # Map static resources from the /public folder to the /assets URL path
