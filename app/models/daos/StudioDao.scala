@@ -1,8 +1,8 @@
-package daos
+package models.daos
 
 import java.util.UUID
 
-import daos.paging.{TotalResults, PageNumber, ResultsPerPage, PagedResult}
+import models.paging.{TotalResults, PageNumber, ResultsPerPage, PagedResult}
 import models.{BusinessName, ObjectID, Studio}
 import anorm._
 import play.api.db.DB

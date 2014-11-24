@@ -2,7 +2,7 @@ package controllers
 
 import controllers.response.{EmptyResponse, DataResponse, ErrorResponse, ResponseEnvelope}
 import controllers.response.ResponseEnvelope._
-import daos.StudioDao
+import models.daos.StudioDao
 import models.{BusinessName, Studio, ObjectID}
 import models.ObjectID._
 import play.api._
@@ -14,10 +14,8 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Try, Success, Failure}
 
 object StudioController extends Controller {
-  val studioDao = new StudioDao {}
-
   def read(studioId: ObjectID) = Action.async {
-    val ftoStudio = studioDao.readStudio(studioId)
+    val ftoStudio = Studio.load(studioId)
 
     ftoStudio.map {
       case Failure(exception) => InternalServerError(Json.toJson(ErrorResponse("The requested failed: "+exception.getMessage)))
@@ -27,11 +25,11 @@ object StudioController extends Controller {
   }
 
   def index = Action.async {
-    val ftStudios = studioDao.indexStudios()
+    val ftStudios = Studio.all
 
     ftStudios.map {
       case  Failure(exception) => InternalServerError(Json.toJson(ErrorResponse("Failed to index studios: "+exception.getMessage)))
-      case Success(pagedResults) => Ok(Json.toJson(DataResponse[Seq[Studio]](pagedResults.result)))
+      case Success(studios) => Ok(Json.toJson(DataResponse[Seq[Studio]](studios)))
     }
   }
 
@@ -50,15 +48,15 @@ object StudioController extends Controller {
     }
 
     // Send the studio to the DB
-    val createdStudio: Either[Future[Try[Studio]], Result] = receivedStudio.left.map { studio =>
-      studioDao.createStudio(studio)
+    val createdStudio: Either[Future[Try[Option[Studio]]], Result] = receivedStudio.left.map { studio =>
+      studio.save
     }
 
     // Validate the DB insert was successful
     val fResult: Future[Result] = createdStudio.left.map { ftStudio =>
       ftStudio.map {
         case Failure(exception) => InternalServerError(Json.toJson(ErrorResponse("Failed to create studio: "+exception.getMessage)))
-        case Success(studio) => Ok(Json.toJson(DataResponse(studio)))
+        case Success(Some(studio)) => Ok(Json.toJson(DataResponse(studio)))
       }
     }.fold(l => l, r => Future(r))
 
@@ -80,7 +78,7 @@ object StudioController extends Controller {
 
     // Send the studio to the DB
     val updatedStudio: Either[Future[Try[Option[Studio]]], Result] = receivedStudio.left.map { studio =>
-      studioDao.updateStudio(studioId, studio)
+      studio.copy(studioId = Some(studioId)).save
     }
 
     // Validate the DB insert was successful
@@ -97,7 +95,7 @@ object StudioController extends Controller {
 
   def delete(studioId: ObjectID) = Action.async {
     // Ask DAO to delete studio
-    studioDao.deleteStudio(studioId).map {
+    Studio.delete(studioId).map {
       case Failure(exception) => InternalServerError(Json.toJson(ErrorResponse("Failed to delete studio: "+exception.getMessage)))
       case Success(deleted) =>
         if (deleted)

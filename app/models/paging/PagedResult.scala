@@ -1,4 +1,4 @@
-package daos.paging
+package models.paging
 
 case class PagedResult[T](result: Seq[T], pageNumber: PageNumber, resultsPerPage: ResultsPerPage, totalResults: TotalResults)
 

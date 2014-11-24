@@ -2,10 +2,18 @@ package models
 
 import java.util.UUID
 
+import models.daos.StudioDao
 import models.contact._
+import models.paging.PagedResult
 import play.api.libs.json._
 
+import scala.concurrent.Future
+import scala.util.{Success, Try}
+import scala.concurrent.ExecutionContext.Implicits.global
+
 object Studio {
+  private val studioDao = new StudioDao {}
+
   implicit val studioReads: Reads[Studio] = new Reads[Studio] {
     def reads(json: JsValue): JsResult[Studio] = JsSuccess[Studio] {
       val studioId = (json \ "studioId").asOpt[String].map(ObjectID.apply)
@@ -21,6 +29,12 @@ object Studio {
       "name" -> studio.name.map(_.name)
     )
   }
+
+  def load(studioId: ObjectID): Future[Try[Option[Studio]]] = studioDao.readStudio(studioId)
+
+  def delete(studioId: ObjectID): Future[Try[Boolean]] = studioDao.deleteStudio(studioId)
+
+  def all: Future[Try[Seq[Studio]]] = studioDao.indexStudios().map { t => t.map { paged => paged.result }}
 }
 
 case class Studio(
@@ -30,6 +44,14 @@ case class Studio(
                    phone: Option[PhoneNumber] = None,
                    website: Option[Website] = None
                    ) {
-  override def toString: String = s"Studio(${studioId.map(_.withDashes).getOrElse("No ID")}, ${name.map(_.name).getOrElse("Unnamed")})"
+  def save: Future[Try[Option[Studio]]] = studioId match {
+    case None => Studio.studioDao.createStudio(this).map(t => t.map(Some(_)))
+    case Some(id) => Studio.studioDao.updateStudio(id, this)
+  }
+
+  def delete: Future[Try[Boolean]] = studioId match {
+    case None => Future(Try(throw new Exception("Studio ID must be set")))
+    case Some(id) => Studio.delete(id)
+  }
 }
 
