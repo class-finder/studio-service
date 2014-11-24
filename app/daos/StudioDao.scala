@@ -46,6 +46,45 @@ trait StudioDao {
     }
   }
 
+  def updateStudio(studioId: ObjectID, studio: Studio): Future[Try[Option[Studio]]] = Future {
+    Try {
+      DB.withConnection { implicit c =>
+        val numEffectedRows = SQL(
+          """
+            |UPDATE studio
+            |SET `name` = {name}
+            |WHERE `studio_id` = UNHEX({studioId})
+            |LIMIT 1
+          """.stripMargin
+        ).on(
+            "studioId" -> studioId.stripDashes,
+            "name" -> studio.name.map(_.name).orNull
+          ).executeUpdate()
+
+        if (numEffectedRows != 1)
+          None
+        else {
+          val studioRow = SQL(
+            """
+            |SELECT HEX(`studio_id`) AS x_studio_id, `name`
+            |FROM studio
+            |WHERE `studio_id` = UNHEX({studioId})
+            |LIMIT 1
+          """.
+              stripMargin
+          ).on("studioId" -> studioId.stripDashes).apply().headOption
+
+          studioRow.map ( row =>
+            Studio(
+              Some(ObjectID(row[String]("x_studio_id"))),
+              Some(BusinessName(row[String]("name")))
+            )
+          )
+        }
+      }
+    }
+  }
+
   def readStudio(studioId: ObjectID): Future[Try[Option[Studio]]] = Future {
     Try {
       DB.withConnection { implicit c =>
@@ -104,8 +143,6 @@ trait StudioDao {
       }
     }
   }
-
-  def updateStudio(studio: Studio): Future[Try[Studio]] = ???
 
   def deleteStudio(studioId: ObjectID): Future[Try[Boolean]] = Future {
     Try {

@@ -1,6 +1,6 @@
 package controllers
 
-import controllers.response.{Data, Error, ResponseEnvelope}
+import controllers.response.{EmptyResponse, DataResponse, ErrorResponse, ResponseEnvelope}
 import controllers.response.ResponseEnvelope._
 import daos.StudioDao
 import models.{BusinessName, Studio, ObjectID}
@@ -20,9 +20,9 @@ object StudioController extends Controller {
     val ftoStudio = studioDao.readStudio(studioId)
 
     ftoStudio.map {
-      case Failure(exception) => InternalServerError(Json.toJson(Error("The requested failed: "+exception.getMessage)))
-      case Success(None) => NotFound(Json.toJson(Error("The studio could not be found ("+studioId.withDashes+")")))
-      case Success(Some(studio)) => Ok(Json.toJson(Data(studio)))
+      case Failure(exception) => InternalServerError(Json.toJson(ErrorResponse("The requested failed: "+exception.getMessage)))
+      case Success(None) => NotFound(Json.toJson(ErrorResponse("The studio could not be found ("+studioId.withDashes+")")))
+      case Success(Some(studio)) => Ok(Json.toJson(DataResponse(studio)))
     }
   }
 
@@ -30,51 +30,80 @@ object StudioController extends Controller {
     val ftStudios = studioDao.indexStudios()
 
     ftStudios.map {
-      case  Failure(exception) => InternalServerError(Json.toJson(Error("Failed to index studios: "+exception.getMessage)))
-      case Success(pagedResults) => Ok(Json.toJson(Data[Seq[Studio]](pagedResults.result)))
+      case  Failure(exception) => InternalServerError(Json.toJson(ErrorResponse("Failed to index studios: "+exception.getMessage)))
+      case Success(pagedResults) => Ok(Json.toJson(DataResponse[Seq[Studio]](pagedResults.result)))
     }
   }
 
   def add = Action.async { request =>
-    // Parse input
+    // Grab JSON input
     val oJson = request.body.asJson
+    val receivedJson: Either[JsValue, Result] = oJson.toLeft[Result](BadRequest(Json.toJson(ErrorResponse("Request content must be JSON"))))
 
-    val receivedJson: Either[JsValue, Result] = oJson.toLeft[Result](BadRequest(Json.toJson(Error("Request content must be JSON"))))
 
+    // Attempt to parse out a Studio object
     val receivedStudio: Either[Studio, Result] = receivedJson.left.map { json =>
       Try(json.as[Studio])
     }.left.flatMap {
-      case Failure(exception) => Right(BadRequest(Json.toJson(Error("Unable to parse studio from JSON: "+exception.getMessage))))
+      case Failure(exception) => Right(BadRequest(Json.toJson(ErrorResponse("Unable to parse studio from JSON: "+exception.getMessage))))
       case Success(studio) => Left(studio)
     }
 
-    val createdStudio: Either[Future[Try[Studio]], Future[Result]] = receivedStudio.left.map { studio =>
+    // Send the studio to the DB
+    val createdStudio: Either[Future[Try[Studio]], Result] = receivedStudio.left.map { studio =>
       studioDao.createStudio(studio)
-    }.right.map { result =>
-      Future(result)
     }
 
-    val finalResult: Either[Future[Result], Future[Result]] = createdStudio.left.map { ftStudio =>
+    // Validate the DB insert was successful
+    val fResult: Future[Result] = createdStudio.left.map { ftStudio =>
       ftStudio.map {
-        case Failure(exception) => InternalServerError(Json.toJson(Error("Failed to create studio: "+exception.getMessage)))
-        case Success(studio) => Ok(Json.toJson(Data(studio)))
+        case Failure(exception) => InternalServerError(Json.toJson(ErrorResponse("Failed to create studio: "+exception.getMessage)))
+        case Success(studio) => Ok(Json.toJson(DataResponse(studio)))
       }
-    }
+    }.fold(l => l, r => Future(r))
 
-    finalResult.right.getOrElse(finalResult.left.get)
+    fResult
   }
 
-  def update(studioId: ObjectID) = TODO
+  def update(studioId: ObjectID) = Action.async { request =>
+    // Grab JSON input
+    val oJson = request.body.asJson
+    val receivedJson: Either[JsValue, Result] = oJson.toLeft[Result](BadRequest(Json.toJson(ErrorResponse("Request content must be JSON"))))
+
+    // Attempt to parse out a Studio object
+    val receivedStudio: Either[Studio, Result] = receivedJson.left.map { json =>
+      Try(json.as[Studio])
+    }.left.flatMap {
+      case Failure(exception) => Right(BadRequest(Json.toJson(ErrorResponse("Unable to parse studio from JSON: "+exception.getMessage))))
+      case Success(studio) => Left(studio)
+    }
+
+    // Send the studio to the DB
+    val updatedStudio: Either[Future[Try[Option[Studio]]], Result] = receivedStudio.left.map { studio =>
+      studioDao.updateStudio(studioId, studio)
+    }
+
+    // Validate the DB insert was successful
+    val fResult: Future[Result] = updatedStudio.left.map { ftStudio =>
+      ftStudio.map {
+        case Failure(exception) => InternalServerError(Json.toJson(ErrorResponse("Failed to update studio: "+exception.getMessage)))
+        case Success(None) => NotFound(Json.toJson(ErrorResponse("A studio with the specified ID could not be found")))
+        case Success(Some(studio)) => Ok(Json.toJson(DataResponse(studio)))
+      }
+    }.fold(l => l, r => Future(r))
+
+    fResult
+  }
 
   def delete(studioId: ObjectID) = Action.async {
     // Ask DAO to delete studio
     studioDao.deleteStudio(studioId).map {
-      case Failure(exception) => InternalServerError(Json.toJson(Error("Failed to delete studio: "+exception.getMessage)))
+      case Failure(exception) => InternalServerError(Json.toJson(ErrorResponse("Failed to delete studio: "+exception.getMessage)))
       case Success(deleted) =>
         if (deleted)
-          Ok("")
+          Ok(Json.toJson(EmptyResponse))
         else
-          NotFound(Json.toJson(Error("No studio with the specified ID could be found.")))
+          NotFound(Json.toJson(ErrorResponse("No studio with the specified ID could be found.")))
     }
   }
 
