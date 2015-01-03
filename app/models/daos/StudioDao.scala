@@ -1,6 +1,7 @@
 package models.daos
 
 import anorm._
+import models.contact._
 import models.paging.{PageNumber, PagedResult, ResultsPerPage, TotalResults}
 import models.{BusinessName, ObjectID, Studio}
 import play.api.Play.current
@@ -88,7 +89,16 @@ trait StudioDao {
       DB.withConnection { implicit c =>
         val studioRow = SQL(
           """
-            |SELECT HEX(`studio_id`) AS x_studio_id, `name`
+            |SELECT
+            |  HEX(`studio_id`) AS x_studio_id,
+            |  `name`,
+            |  `address_street`,
+            |  `address_city`,
+            |  `address_postal_code`,
+            |  `address_province`,
+            |  `address_country`,
+            |  `phone`,
+            |  `website`
             |FROM studio
             |WHERE `studio_id` = UNHEX({studioId})
             |LIMIT 1
@@ -99,9 +109,15 @@ trait StudioDao {
           Studio(
             Some(ObjectID(row[String]("x_studio_id"))),
             Some(BusinessName(row[String]("name"))),
-          None,
-          None,
-          None
+            Some(Address(
+              row[Option[String]]("address_street").map(street => StreetAddress(street)),
+              row[Option[String]]("address_city").map(city => City(city)),
+              row[Option[String]]("address_province").map(prov => Province(prov)),
+              row[Option[String]]("address_postal_code").map(postCode => PostalCode(postCode)),
+              row[Option[String]]("address_country").map(country => Country(country))
+            )),
+            row[Option[String]]("phone").map(phone => PhoneNumber(phone)),
+            row[Option[String]]("website").map(website => Website(website))
           )
         }
       }
@@ -113,7 +129,17 @@ trait StudioDao {
       DB.withConnection { implicit c =>
         val studioRows = SQL(
           """
-            |SELECT SQL_CALC_FOUND_ROWS HEX(`studio_id`) AS x_studio_id, `name`
+            |SELECT
+            |  SQL_CALC_FOUND_ROWS
+            |  HEX(`studio_id`) AS x_studio_id,
+            |  `name`,
+            |  `address_street`,
+            |  `address_city`,
+            |  `address_postal_code`,
+            |  `address_province`,
+            |  `address_country`,
+            |  `phone`,
+            |  `website`
             |FROM studio
             |LIMIT 100
           """.stripMargin
@@ -131,9 +157,15 @@ trait StudioDao {
           Studio(
             Some(ObjectID(row[String]("x_studio_id"))),
             Some(BusinessName(row[String]("name"))),
-            None,
-            None,
-            None
+            Some(Address(
+              row[Option[String]]("address_street").map(street => StreetAddress(street)),
+              row[Option[String]]("address_city").map(city => City(city)),
+              row[Option[String]]("address_province").map(prov => Province(prov)),
+              row[Option[String]]("address_postal_code").map(postCode => PostalCode(postCode)),
+              row[Option[String]]("address_country").map(country => Country(country))
+            )),
+            row[Option[String]]("phone").map(phone => PhoneNumber(phone)),
+            row[Option[String]]("website").map(website => Website(website))
           )
         }.force.toSeq
 

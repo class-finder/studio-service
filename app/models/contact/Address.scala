@@ -15,14 +15,14 @@ object Address {
 }
 
 case class Address(
-                    street: Option[AddressStreet],
+                    street: Option[StreetAddress],
                     city: Option[City],
                     province: Option[Province],
                     postCode: Option[PostalCode],
                     country: Option[Country]
                     )
 
-case class AddressStreet(street: String) extends AnyVal
+case class StreetAddress(street: String) extends AnyVal
 case class City(city: String) extends AnyVal
 case class Province(province: String) extends AnyVal
 case class PostalCode(postCode: String) extends AnyVal
