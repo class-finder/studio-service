@@ -16,7 +16,7 @@ object StudioController extends Controller {
 
     ftoStudio.map {
       case Failure(exception) => InternalServerError(Json.toJson(ErrorResponse("The requested failed: "+exception.getMessage)))
-      case Success(None) => NotFound(Json.toJson(ErrorResponse("The studio could not be found ("+studioId.withDashes+")")))
+      case Success(None) => NotFound(Json.toJson(ErrorResponse("The studio could not be found ("+studioId.stripDashes+")")))
       case Success(Some(studio)) => Ok(Json.toJson(DataResponse(studio)))
     }
   }

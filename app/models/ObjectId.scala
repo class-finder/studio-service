@@ -20,7 +20,7 @@ object ObjectID {
 }
 
 case class ObjectID(id: String) extends AnyVal {
-  def withDashes: String = {
+  private def withDashes: String = {
     if(id.length == 32) {
       val sb = new StringBuilder(36)
       sb.append(id.substring(0, 8))

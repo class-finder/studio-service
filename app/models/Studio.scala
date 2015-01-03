@@ -22,7 +22,7 @@ object Studio {
 
   implicit val studioWrites: Writes[Studio] = new Writes[Studio] {
     def writes(studio: Studio) = Json.obj(
-      "studioId" -> studio.studioId.map(_.withDashes),
+      "studioId" -> studio.studioId.map(_.stripDashes),
       "name" -> studio.name.map(_.name)
     )
   }
