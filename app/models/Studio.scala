@@ -23,7 +23,10 @@ object Studio {
   implicit val studioWrites: Writes[Studio] = new Writes[Studio] {
     def writes(studio: Studio) = Json.obj(
       "studioId" -> studio.studioId.map(_.stripDashes),
-      "name" -> studio.name.map(_.name)
+      "name" -> studio.name.map(_.name),
+      "address" -> studio.address,
+      "phone" -> studio.phone.map(_.number),
+      "website" -> studio.website.map(_.website)
     )
   }
 
