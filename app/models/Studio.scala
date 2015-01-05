@@ -2,10 +2,12 @@ package models
 
 import models.contact._
 import models.daos.StudioDao
+import net.tobysullivan.google.geolocation.{GoogleGeolocationClient, GeoPoint}
 import play.api.libs.json._
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
 import scala.util.Try
 
 object Studio {
@@ -26,7 +28,11 @@ object Studio {
       "name" -> studio.name.map(_.name),
       "address" -> studio.address,
       "phone" -> studio.phone.map(_.number),
-      "website" -> studio.website.map(_.website)
+      "website" -> studio.website.map(_.website),
+      "geometry" -> Json.obj(
+        "latitude" -> Try(Await.result(studio.getLatitude, 500 milliseconds)).toOption.flatten.map(_.toString),
+        "longitude" -> Try(Await.result(studio.getLongitude, 500 milliseconds)).toOption.flatten.map(_.toString)
+      )
     )
   }
 
@@ -53,5 +59,20 @@ case class Studio(
     case None => Future(Try(throw new Exception("Studio ID must be set")))
     case Some(id) => Studio.delete(id)
   }
+
+  private lazy val geometry: Future[Option[GeoPoint]] = {
+    address.map { address =>
+      val addressBuilder = new StringBuilder()
+      address.street.map(str => addressBuilder.append(str.street+", "))
+      address.city.map(city => addressBuilder.append(city.city+", "))
+      address.province.map(prov => addressBuilder.append(prov.province+", "))
+      address.country.map(ctry => addressBuilder.append(ctry.country))
+
+      GoogleGeolocationClient.getLatLong(addressBuilder.toString())
+    }.getOrElse(Future(None))
+  }
+
+  def getLatitude: Future[Option[Float]] = geometry.map(_.map(_.lat))
+  def getLongitude: Future[Option[Float]] = geometry.map(_.map(_.long))
 }
 
